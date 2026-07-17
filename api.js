@@ -1,6 +1,6 @@
 // ==== CONFIGURE THIS ====
 // Paste the Web App URL you get after deploying Code.gs (see SETUP.md)
-const API_URL = "https://script.google.com/macros/s/AKfycby4HbQ5BB-n_qLZaOzZLrA2kRnhuku8_OTV-ZZWU92b4jmgfWgvM2pvE0l-nXDB6PGW/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycbzvut-iz8KC277rZGArTt2-ot0uxyn0LKhLY9K2OVSL58bBvKBX4xtMMtZVr47fpGjW/exec";
 // =========================
 
 async function api(action, payload = {}) {
