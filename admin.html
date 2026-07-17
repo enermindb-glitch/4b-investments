@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>4B Investment Group — Admin</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="topbar">
+  <div class="brand">4<span class="num">B</span> Investment Group <span class="stamp" style="margin-left:8px; vertical-align:middle;">Admin</span></div>
+  <div class="who">
+    <span id="whoName"></span>
+    <a href="dashboard.html" class="logout">My Dashboard</a>
+    <a href="#" class="logout" onclick="logout(); return false;">Log out</a>
+  </div>
+</div>
+
+<div class="wrap">
+
+  <div class="card">
+    <h2>Pending Registrations</h2>
+    <div id="pendingList"></div>
+    <div id="pendingEmpty" class="empty" style="display:none">No pending registrations.</div>
+  </div>
+
+  <div class="card">
+    <h2>Post a Britam Document</h2>
+    <form id="docForm">
+      <label for="title">Statement title</label>
+      <input type="text" id="title" placeholder="e.g. Q2 2026 Britam Statement" required>
+
+      <label for="date">Statement date</label>
+      <input type="date" id="date" required>
+
+      <label for="interestEarned">Interest earned (KES)</label>
+      <input type="number" id="interestEarned" step="0.01" required>
+
+      <label for="fileLink">Document link (Google Drive share link)</label>
+      <input type="url" id="fileLink" placeholder="https://drive.google.com/...">
+
+      <label for="description">Notes (optional)</label>
+      <input type="text" id="description">
+
+      <button type="submit" class="gold">Post Document</button>
+    </form>
+    <div id="docMsg" class="msg" style="display:none"></div>
+  </div>
+
+  <div class="card">
+    <h2>All Member Contributions</h2>
+    <table>
+      <thead>
+        <tr><th>Member</th><th>File #</th><th>Month</th><th class="amount">Amount</th></tr>
+      </thead>
+      <tbody id="allContribBody"></tbody>
+    </table>
+    <div id="allContribEmpty" class="empty" style="display:none">No contributions logged yet.</div>
+  </div>
+
+</div>
+
+<script src="api.js"></script>
+<script>
+requireAdminUI();
+const user = getUser();
+document.getElementById("whoName").textContent = `${user.name} · File #${user.fileNumber}`;
+
+function money(n) {
+  return "KES " + Number(n || 0).toLocaleString("en-KE", { minimumFractionDigits: 2 });
+}
+
+async function loadPending() {
+  const res = await api("getPendingUsers", { token: getToken() });
+  const list = document.getElementById("pendingList");
+  const empty = document.getElementById("pendingEmpty");
+  list.innerHTML = "";
+  if (!res.success) return;
+  if (res.users.length === 0) {
+    empty.style.display = "block";
+    return;
+  }
+  empty.style.display = "none";
+  res.users.forEach(u => {
+    const row = document.createElement("div");
+    row.className = "pending-row";
+    row.innerHTML = `
+      <div class="who"><strong>${u.name}</strong> — File #${u.fileNumber} — ${u.email}</div>
+      <div class="actions">
+        <button class="gold" data-action="approve">Approve</button>
+        <button class="ghost" data-action="reject">Reject</button>
+      </div>
+    `;
+    row.querySelector('[data-action="approve"]').onclick = () => decide(u.fileNumber, "approveUser");
+    row.querySelector('[data-action="reject"]').onclick = () => decide(u.fileNumber, "rejectUser");
+    list.appendChild(row);
+  });
+}
+
+async function decide(fileNumber, action) {
+  await api(action, { token: getToken(), fileNumber });
+  loadPending();
+}
+
+document.getElementById("docForm").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const msg = document.getElementById("docMsg");
+  const payload = {
+    token: getToken(),
+    title: document.getElementById("title").value.trim(),
+    date: document.getElementById("date").value,
+    interestEarned: document.getElementById("interestEarned").value,
+    fileLink: document.getElementById("fileLink").value.trim(),
+    description: document.getElementById("description").value.trim()
+  };
+
+  const btn = e.target.querySelector("button");
+  btn.disabled = true; btn.textContent = "Posting…";
+
+  try {
+    const res = await api("addDocument", payload);
+    if (res.success) {
+      showMsg(msg, "Document posted to all members.", "success");
+      e.target.reset();
+    } else {
+      showMsg(msg, res.error || "Could not post document", "error");
+    }
+  } finally {
+    btn.disabled = false; btn.textContent = "Post Document";
+  }
+});
+
+async function loadAllContributions() {
+  const res = await api("getAllContributions", { token: getToken() });
+  const body = document.getElementById("allContribBody");
+  const empty = document.getElementById("allContribEmpty");
+  body.innerHTML = "";
+  if (!res.success) return;
+  if (res.contributions.length === 0) {
+    empty.style.display = "block";
+    return;
+  }
+  empty.style.display = "none";
+  res.contributions
+    .slice()
+    .sort((a, b) => (a.month < b.month ? 1 : -1))
+    .forEach(c => {
+      const tr = document.createElement("tr");
+      tr.innerHTML = `<td>${c.name}</td><td>${c.fileNumber}</td><td>${c.month}</td><td class="amount">${money(c.amount)}</td>`;
+      body.appendChild(tr);
+    });
+}
+
+loadPending();
+loadAllContributions();
+</script>
+</body>
+</html>
