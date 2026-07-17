@@ -56,6 +56,35 @@ a { color: var(--gold-deep); }
   font-weight: 700;
   font-size: 1.3rem;
   letter-spacing: 0.02em;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.logo {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 1px solid var(--paper-line);
+}
+
+.logo-hero {
+  width: 68px;
+  height: 68px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid var(--gold);
+  display: block;
+  margin: 0 auto 14px;
+}
+
+.admin-link {
+  display: block;
+  text-align: center;
+  margin-top: 10px;
+  font-size: 0.82rem;
+  color: var(--ink-soft);
 }
 
 .topbar .brand .num {
