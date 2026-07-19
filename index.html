@@ -33,7 +33,7 @@
     New member? <a href="register.html">Register here</a> — approval is needed before you can log in.
   </div>
   <div class="admin-link">
-    Admins log in with the same form above — <a href="index.html">Admin Login</a>
+    Are you an admin? <a href="admin-login.html">Admin Login</a>
   </div>
 </div>
 
@@ -50,12 +50,15 @@ document.getElementById("loginForm").addEventListener("submit", async (e) => {
 
   try {
     const res = await api("login", { email, password });
-    if (res.success) {
+    if (res.success && res.role === "admin") {
+      api("logout", { token: res.token }); // don't leave an unused session open
+      showMsg(msg, "This is a member login. Admins should use the Admin Login link below.", "error");
+    } else if (res.success) {
       localStorage.setItem("4b_token", res.token);
       localStorage.setItem("4b_user", JSON.stringify({
         name: res.name, role: res.role, fileNumber: res.fileNumber
       }));
-      window.location.href = res.role === "admin" ? "admin.html" : "dashboard.html";
+      window.location.href = "dashboard.html";
     } else {
       showMsg(msg, res.error || "Login failed", "error");
     }
