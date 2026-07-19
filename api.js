@@ -32,14 +32,16 @@ function requireLogin() {
 
 function requireAdminUI() {
   const user = getUser();
-  if (!getToken() || !user || user.role !== "admin") window.location.href = "dashboard.html";
+  if (!getToken()) { window.location.href = "admin-login.html"; return; }
+  if (!user || user.role !== "admin") window.location.href = "dashboard.html";
 }
 
 function logout() {
+  const wasAdmin = getUser() && getUser().role === "admin";
   api("logout", { token: getToken() }).finally(() => {
     localStorage.removeItem("4b_token");
     localStorage.removeItem("4b_user");
-    window.location.href = "index.html";
+    window.location.href = wasAdmin ? "admin-login.html" : "index.html";
   });
 }
 
