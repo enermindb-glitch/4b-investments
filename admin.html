@@ -29,6 +29,54 @@
   </div>
 
   <div class="card">
+    <h2>Manage Members</h2>
+    <div class="empty" style="margin-bottom:10px;">Edit any member's details — including your own admin account.</div>
+    <table>
+      <thead>
+        <tr><th>File #</th><th>Name</th><th>Email</th><th>Role</th><th>Status</th><th></th></tr>
+      </thead>
+      <tbody id="usersBody"></tbody>
+    </table>
+    <div id="usersEmpty" class="empty" style="display:none">No members yet.</div>
+  </div>
+
+  <div class="card" id="editCard" style="display:none">
+    <h2>Edit Member</h2>
+    <form id="editForm">
+      <input type="hidden" id="editTargetFileNumber">
+
+      <label for="editFileNumber">File number</label>
+      <input type="text" id="editFileNumber" required>
+
+      <label for="editName">Full name</label>
+      <input type="text" id="editName" required>
+
+      <label for="editEmail">Email</label>
+      <input type="email" id="editEmail" required>
+
+      <label for="editRole">Role</label>
+      <select id="editRole">
+        <option value="member">member</option>
+        <option value="admin">admin</option>
+      </select>
+
+      <label for="editStatus">Status</label>
+      <select id="editStatus">
+        <option value="approved">approved</option>
+        <option value="pending">pending</option>
+        <option value="rejected">rejected</option>
+      </select>
+
+      <label for="editPassword">New password (leave blank to keep unchanged)</label>
+      <input type="password" id="editPassword" minlength="6">
+
+      <button type="submit" class="gold">Save Changes</button>
+      <button type="button" class="ghost" id="cancelEdit">Cancel</button>
+    </form>
+    <div id="editMsg" class="msg" style="display:none"></div>
+  </div>
+
+  <div class="card">
     <h2>Post a Britam Document</h2>
     <form id="docForm">
       <label for="title">Statement title</label>
@@ -155,8 +203,90 @@ async function loadAllContributions() {
     });
 }
 
+async function loadUsers() {
+  const res = await api("getAllUsers", { token: getToken() });
+  const body = document.getElementById("usersBody");
+  const empty = document.getElementById("usersEmpty");
+  body.innerHTML = "";
+  if (!res.success) return;
+  if (res.users.length === 0) {
+    empty.style.display = "block";
+    return;
+  }
+  empty.style.display = "none";
+  res.users.forEach(u => {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${u.fileNumber}</td>
+      <td>${u.name}</td>
+      <td>${u.email}</td>
+      <td>${u.role}</td>
+      <td>${u.status}</td>
+      <td><button class="ghost" data-edit="${u.fileNumber}">Edit</button></td>
+    `;
+    tr.querySelector("[data-edit]").onclick = () => openEdit(u);
+    body.appendChild(tr);
+  });
+}
+
+function openEdit(u) {
+  document.getElementById("editTargetFileNumber").value = u.fileNumber;
+  document.getElementById("editFileNumber").value = u.fileNumber;
+  document.getElementById("editName").value = u.name;
+  document.getElementById("editEmail").value = u.email;
+  document.getElementById("editRole").value = u.role;
+  document.getElementById("editStatus").value = u.status;
+  document.getElementById("editPassword").value = "";
+  document.getElementById("editMsg").style.display = "none";
+  document.getElementById("editCard").style.display = "block";
+  document.getElementById("editCard").scrollIntoView({ behavior: "smooth" });
+}
+
+document.getElementById("cancelEdit").addEventListener("click", () => {
+  document.getElementById("editCard").style.display = "none";
+});
+
+document.getElementById("editForm").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const msg = document.getElementById("editMsg");
+  const payload = {
+    token: getToken(),
+    targetFileNumber: document.getElementById("editTargetFileNumber").value,
+    fileNumber: document.getElementById("editFileNumber").value.trim(),
+    name: document.getElementById("editName").value.trim(),
+    email: document.getElementById("editEmail").value.trim(),
+    role: document.getElementById("editRole").value,
+    status: document.getElementById("editStatus").value,
+    password: document.getElementById("editPassword").value
+  };
+
+  const btn = e.target.querySelector('button[type="submit"]');
+  btn.disabled = true; btn.textContent = "Saving…";
+
+  try {
+    const res = await api("updateUser", payload);
+    if (res.success) {
+      showMsg(msg, "Member updated.", "success");
+      loadUsers();
+      // If the admin edited their own account, refresh local user info.
+      const currentUser = getUser();
+      if (currentUser && currentUser.fileNumber === payload.targetFileNumber) {
+        localStorage.setItem("4b_user", JSON.stringify({
+          name: payload.name, role: payload.role, fileNumber: payload.fileNumber
+        }));
+        document.getElementById("whoName").textContent = `${payload.name} · File #${payload.fileNumber}`;
+      }
+    } else {
+      showMsg(msg, res.error || "Could not update member", "error");
+    }
+  } finally {
+    btn.disabled = false; btn.textContent = "Save Changes";
+  }
+});
+
 loadPending();
 loadAllContributions();
+loadUsers();
 </script>
 </body>
 </html>
