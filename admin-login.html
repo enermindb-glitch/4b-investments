@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>4B Investment Group — Admin Login</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="wrap narrow">
+  <div style="text-align:center; margin-bottom: 28px;">
+    <img class="logo-hero" src="https://media-mba2-1.cdn.whatsapp.net/v/t61.24694-24/490583399_3823653537884983_4854067465339027898_n.jpg?ccb=11-4&oh=01_Q5Aa5AEltySXBpsvY-lLE_jn9wcFKEuecla-cQwkovS0sm5wnA&oe=6A66E120&_nc_sid=5e03e0&_nc_cat=106" alt="4B Investment Group logo">
+    <h1 class="display">4<span style="color:var(--gold-deep)">B</span> Investment Group</h1>
+    <div class="empty">Admin Login</div>
+  </div>
+
+  <div class="card">
+    <h2>Admin Log In <span class="stamp" style="margin-left:8px; vertical-align:middle;">Admin</span></h2>
+    <form id="adminLoginForm">
+      <label for="fileNumber">File number</label>
+      <input type="text" id="fileNumber" required autocomplete="username">
+
+      <label for="password">Password</label>
+      <input type="password" id="password" required autocomplete="current-password">
+
+      <button type="submit" class="gold" style="width:100%">Log In</button>
+    </form>
+    <div id="msg" class="msg" style="display:none"></div>
+  </div>
+
+  <div class="nav-links">
+    Not an admin? <a href="index.html">Member login</a>
+  </div>
+</div>
+
+<script src="api.js"></script>
+<script>
+document.getElementById("adminLoginForm").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const msg = document.getElementById("msg");
+  const fileNumber = document.getElementById("fileNumber").value.trim();
+  const password = document.getElementById("password").value;
+
+  const btn = e.target.querySelector("button");
+  btn.disabled = true; btn.textContent = "Logging in…";
+
+  try {
+    // The backend accepts either an email or a file number as the identifier.
+    const res = await api("login", { email: fileNumber, password });
+    if (res.success && res.role === "admin") {
+      localStorage.setItem("4b_token", res.token);
+      localStorage.setItem("4b_user", JSON.stringify({
+        name: res.name, role: res.role, fileNumber: res.fileNumber
+      }));
+      window.location.href = "admin.html";
+    } else if (res.success && res.role !== "admin") {
+      showMsg(msg, "This login is for admin accounts only. Use the member login instead.", "error");
+    } else {
+      showMsg(msg, res.error || "Login failed", "error");
+    }
+  } catch (err) {
+    showMsg(msg, "Could not reach the server. Check API_URL in api.js.", "error");
+  } finally {
+    btn.disabled = false; btn.textContent = "Log In";
+  }
+});
+</script>
+</body>
+</html>
